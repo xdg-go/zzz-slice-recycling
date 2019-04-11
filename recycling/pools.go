@@ -17,9 +17,9 @@ import (
 var StartCap = 256
 
 type BytePool interface {
-	Get() []byte                    // Get a zero slice of some capacity
-	Put([]byte)                     // Return a slice
-	Resize(bs []byte, n int) []byte // Set slice length to new size
+	Get() []byte                      // Get a zero slice of some capacity
+	Put([]byte)                       // Return a slice
+	Resize(orig []byte, n int) []byte // Set slice length to new size
 }
 
 func max(x, y int) int {
@@ -47,12 +47,12 @@ func (np NullPool) Get() []byte {
 
 func (np NullPool) Put(bs []byte) {}
 
-func (np NullPool) Resize(bs []byte, size int) []byte {
-	if size < cap(bs) {
-		return bs[0:size]
+func (np NullPool) Resize(orig []byte, size int) []byte {
+	if size < cap(orig) {
+		return orig[0:size]
 	}
-	temp := make([]byte, size, max(size, cap(bs)*2))
-	copy(temp, bs)
+	temp := make([]byte, size, max(size, cap(orig)*2))
+	copy(temp, orig)
 	return temp
 }
 
@@ -86,13 +86,13 @@ func (sp SyncPool) Put(bs []byte) {
 	sp.pool.Put(bs)
 }
 
-func (sp SyncPool) Resize(bs []byte, size int) []byte {
-	if size < cap(bs) {
-		return bs[0:size]
+func (sp SyncPool) Resize(orig []byte, size int) []byte {
+	if size < cap(orig) {
+		return orig[0:size]
 	}
-	temp := make([]byte, size, max(size, cap(bs)*2))
-	copy(temp, bs)
-	sp.Put(bs)
+	temp := make([]byte, size, max(size, cap(orig)*2))
+	copy(temp, orig)
+	sp.Put(orig)
 	return temp
 }
 
@@ -132,14 +132,14 @@ func (sp Power2Pool) Put(bs []byte) {
 	sp.pools[powerOfTwo(cap(bs))].Put(bs)
 }
 
-func (sp Power2Pool) Resize(bs []byte, size int) []byte {
-	if size < cap(bs) {
-		return bs[0:size]
+func (sp Power2Pool) Resize(orig []byte, size int) []byte {
+	if size < cap(orig) {
+		return orig[0:size]
 	}
 	temp := sp.getn(size)
 	temp = temp[0:size]
-	copy(temp, bs)
-	sp.Put(bs)
+	copy(temp, orig)
+	sp.Put(orig)
 	return temp
 }
 
@@ -188,16 +188,16 @@ func (rp *ReservedPool) Put(bs []byte) {
 	return
 }
 
-func (rp *ReservedPool) Resize(bs []byte, size int) []byte {
-	if size < cap(bs) {
-		return bs[0:size]
+func (rp *ReservedPool) Resize(orig []byte, size int) []byte {
+	if size < cap(orig) {
+		return orig[0:size]
 	}
 	rp.Lock()
 	rp.targetCap = max(size, rp.targetCap*2)
 	newCap := rp.targetCap
 	rp.Unlock()
 	temp := make([]byte, size, newCap)
-	copy(temp, bs)
+	copy(temp, orig)
 	return temp
 }
 
@@ -227,11 +227,11 @@ func (sp LeakySyncPool) Put(bs []byte) {
 	sp.pool.Put(bs)
 }
 
-func (sp LeakySyncPool) Resize(bs []byte, size int) []byte {
-	if size < cap(bs) {
-		return bs[0:size]
+func (sp LeakySyncPool) Resize(orig []byte, size int) []byte {
+	if size < cap(orig) {
+		return orig[0:size]
 	}
-	temp := make([]byte, size, max(size, cap(bs)*2))
-	copy(temp, bs)
+	temp := make([]byte, size, max(size, cap(orig)*2))
+	copy(temp, orig)
 	return temp
 }
